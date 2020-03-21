@@ -13,8 +13,8 @@ import (
 func main() {
 	conf := NewConfig()
 
-	kubeManager := kube.NewKubeClient(conf.KubeConfigPath)
-	_ = kubeManager
+	kubeClient := kube.NewClient(conf.KubeConfigPath)
+	_ = kubeClient
 
 	router := web.New(Context{}). // Create your router
 					Middleware(web.LoggerMiddleware).    // Use some included middleware
