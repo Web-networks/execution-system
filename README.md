@@ -37,7 +37,7 @@ In future, we can get rid of `STILL_RUNNING` in favor of more concrete stage.
 #### Responses
 ```json
 {
-  "state": "FINISHED" | "STILL_RUNNING" | "NOT_SCHEDULED"
+  "state": "FINISHED" | "RUNNING" | "UNKNOWN"
 }
 ```
 

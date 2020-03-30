@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Web-networks/execution-system/kube"
+	"github.com/Web-networks/execution-system/task"
 	"github.com/gocraft/web"
 )
 
@@ -14,11 +15,11 @@ func main() {
 	conf := NewConfig()
 
 	kubeClient := kube.NewClient(conf.KubeConfigPath)
-	_ = kubeClient
+	taskManager := task.NewTaskManager(kubeClient)
 
-	router := web.New(Context{}). // Create your router
-					Middleware(web.LoggerMiddleware).    // Use some included middleware
-					Middleware(web.ShowErrorsMiddleware) // ...
+	router := web.New(Context{})
+	ep := NewEndpoints(taskManager)
+	ep.SetupRoutes(router)
 
 	log.Printf("Start listening on %s", conf.AddressAndPort())
 	err := http.ListenAndServe(conf.AddressAndPort(), router)
