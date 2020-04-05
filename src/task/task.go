@@ -2,6 +2,8 @@ package task
 
 import (
 	"fmt"
+	"sync/atomic"
+	"unsafe"
 
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -37,24 +39,34 @@ type Task struct {
 	id  string
 	typ TaskType
 
-	// TODO: mutex
-	state TaskState
+	state unsafe.Pointer
 }
 
 func NewTask(id string) *Task {
-	return &Task{
-		id:    id,
-		typ:   LearningType,
-		state: Initializing,
+	t := &Task{
+		id:  id,
+		typ: LearningType,
 	}
+	t.SetState(Initializing)
+	return t
+}
+
+func (t *Task) State() TaskState {
+	state := atomic.LoadPointer(&t.state)
+	return *(*TaskState)(state)
+}
+
+func (t *Task) SetState(state TaskState) {
+	atomic.StorePointer(&t.state, unsafe.Pointer(&state))
 }
 
 func newTaskFromBatchJob(job *batchv1.Job) *Task {
-	return &Task{
-		id:    idFromKubeJob(job),
-		typ:   typeFromKubeJob(job),
-		state: stateFromKubeJob(job),
+	t := &Task{
+		id:  idFromKubeJob(job),
+		typ: typeFromKubeJob(job),
 	}
+	t.SetState(stateFromKubeJob(job))
+	return t
 }
 
 func (t *Task) KubeJobName() string {

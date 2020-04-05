@@ -22,7 +22,7 @@ func (tm *TaskManager) watchLearningTasks(event <-chan watch.Event) {
 			job := event.Object.DeepCopyObject().(*v1.Job)
 			taskID := idFromKubeJob(job)
 			newState := stateFromKubeJob(job)
-			tm.tasks[taskID].state = newState
+			tm.tasks[taskID].SetState(newState)
 		}
 		// TODO: MODIFIED - restarts
 		log.Printf("watcher: event type = %v", event.Type)
@@ -44,5 +44,5 @@ func (tm *TaskManager) TaskStateByID(id string) TaskState {
 	if !ok {
 		return UnknownTask
 	}
-	return foundTask.state
+	return foundTask.State()
 }
