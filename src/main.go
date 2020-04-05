@@ -15,7 +15,7 @@ func main() {
 	conf := NewConfig()
 
 	kubeClient := kube.NewClient(conf.KubeConfigPath)
-	taskManager := task.NewTaskManager(kubeClient)
+	taskManager := task.CreateManagerFromKubernetesState(kubeClient)
 
 	router := web.New(Context{})
 	ep := NewEndpoints(taskManager)

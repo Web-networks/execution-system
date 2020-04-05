@@ -15,6 +15,7 @@ import (
 type Client interface {
 	RunBatchJob(job *batchv1.Job) error
 	WatchBatchJobs(options v1.ListOptions) (watch.Interface, error)
+	GetBatchJobs(options v1.ListOptions) (*batchv1.JobList, error)
 }
 
 type client struct {
@@ -46,4 +47,9 @@ func (c *client) RunBatchJob(job *batchv1.Job) error {
 func (c *client) WatchBatchJobs(options v1.ListOptions) (watch.Interface, error) {
 	jobClient := c.clientset.BatchV1().Jobs("default")
 	return jobClient.Watch(options)
+}
+
+func (c *client) GetBatchJobs(options v1.ListOptions) (*batchv1.JobList, error) {
+	jobClient := c.clientset.BatchV1().Jobs("default")
+	return jobClient.List(options)
 }

@@ -1,30 +1,12 @@
 package task
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/Web-networks/execution-system/kube"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/watch"
 )
-
-func NewTaskManager(client kube.Client) *TaskManager {
-	m := &TaskManager{
-		kubeClient: client,
-		tasks:      make(map[string]*Task),
-	}
-
-	remoteJupyterWatcher, err := m.kubeClient.WatchBatchJobs(v1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", K8sTypeLabel, LearningType),
-	})
-	if err != nil {
-		panic("failed to start watching for learning tasks")
-	}
-	go m.watchLearningTasks(remoteJupyterWatcher.ResultChan())
-
-	return m
-}
 
 type TaskManager struct {
 	kubeClient kube.Client
@@ -34,6 +16,14 @@ type TaskManager struct {
 func (tm *TaskManager) watchLearningTasks(event <-chan watch.Event) {
 	log.Printf("watcher: start watching!")
 	for event := range event {
+		switch event.Type {
+		case watch.Modified:
+			// TODO: error handling
+			job := event.Object.DeepCopyObject().(*v1.Job)
+			taskID := idFromKubeJob(job)
+			newState := stateFromKubeJob(job)
+			tm.tasks[taskID].state = newState
+		}
 		// TODO: MODIFIED - restarts
 		log.Printf("watcher: event type = %v", event.Type)
 	}

@@ -8,8 +8,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const K8sTypeLabel = "bigone.demist.ru/task-type"
-const K8sTaskIDLabel = "bigone.demist.ru/task-id"
+const managedByLabel = "app.kubernetes.io/managed-by"
+const managedByValue = "execution-system"
+
+const taskTypeLabel = "bigone.demist.ru/task-type"
+const taskIDLabel = "bigone.demist.ru/task-id"
 
 type TaskType = string
 
@@ -26,7 +29,8 @@ const (
 	Running      = "RUNNING"
 	Failed       = "FAILED"
 	Success      = "SUCCESS"
-	UnknownTask  = "UNKNOWN_TASK"
+
+	UnknownTask = "UNKNOWN_TASK"
 )
 
 type Task struct {
@@ -45,6 +49,14 @@ func NewTask(id string) *Task {
 	}
 }
 
+func newTaskFromBatchJob(job *batchv1.Job) *Task {
+	return &Task{
+		id:    idFromKubeJob(job),
+		typ:   typeFromKubeJob(job),
+		state: stateFromKubeJob(job),
+	}
+}
+
 func (t *Task) KubeJobName() string {
 	return fmt.Sprintf("%s-%s", t.typ, t.id)
 }
@@ -53,15 +65,14 @@ func (t *Task) KubeJob() *batchv1.Job {
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: t.KubeJobName(),
+			Labels: map[string]string{
+				managedByLabel: managedByValue,
+				taskTypeLabel:  LearningType,
+				taskIDLabel:    t.id,
+			},
 		},
 		Spec: batchv1.JobSpec{
 			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						K8sTypeLabel:   LearningType,
-						K8sTaskIDLabel: t.id,
-					},
-				},
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
 						{
@@ -80,5 +91,27 @@ func (t *Task) KubeJob() *batchv1.Job {
 				},
 			},
 		},
+	}
+}
+
+func idFromKubeJob(job *batchv1.Job) string {
+	labels := job.ObjectMeta.GetObjectMeta().GetLabels()
+	return labels[taskIDLabel]
+}
+
+func typeFromKubeJob(job *batchv1.Job) TaskType {
+	labels := job.ObjectMeta.GetObjectMeta().GetLabels()
+	return labels[taskTypeLabel]
+}
+
+func stateFromKubeJob(job *batchv1.Job) TaskState {
+	if job.Status.Failed > 0 {
+		return Failed
+	} else if job.Status.Active > 0 {
+		return Running
+	} else if job.Status.Succeeded > 0 {
+		return Success
+	} else {
+		return Initializing
 	}
 }
