@@ -8,6 +8,7 @@ import (
 
 	"github.com/Web-networks/execution-system/kube"
 	"github.com/Web-networks/execution-system/task"
+	"github.com/Web-networks/execution-system/task/learning"
 	"github.com/gocraft/web"
 )
 
@@ -15,7 +16,9 @@ func main() {
 	conf := NewConfig()
 
 	kubeClient := kube.NewClient(conf.KubeConfigPath)
-	taskManager := task.CreateManagerFromKubernetesState(kubeClient)
+	taskManager := task.CreateManagerFromKubernetesState(kubeClient,
+		learning.NewTaskTypeHandler(kubeClient),
+	)
 
 	router := web.New(Context{})
 	ep := NewEndpoints(taskManager)

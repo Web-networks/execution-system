@@ -41,7 +41,7 @@ func (ep *Endpoints) ExecuteTask(ctx *Context, rw web.ResponseWriter, req *web.R
 		http.Error(rw, "task_id is not specified", http.StatusBadRequest)
 	}
 
-	t := task.NewTask(id)
+	t := task.NewLearningTask(id)
 
 	if err := ep.taskManager.Run(t); err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
