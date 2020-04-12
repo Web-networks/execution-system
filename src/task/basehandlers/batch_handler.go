@@ -84,17 +84,17 @@ func stateFromKubeJob(job *batchv1.Job) task.TaskState {
 }
 
 func (h *BatchWorkloadTaskTypeHandler) WatchTasks(cb task.OnTaskStateModifiedCallback) {
-	learningTasksWatcher, err := h.kubeClient.WatchBatchJobs(v1.ListOptions{
+	tasksWatcher, err := h.kubeClient.WatchBatchJobs(v1.ListOptions{
 		// TODO: add managed-by
-		LabelSelector: fmt.Sprintf("%s=%s", task.TaskTypeLabel, task.LearningType),
+		LabelSelector: fmt.Sprintf("%s=%s", task.TaskTypeLabel, h.spec.Type()),
 	})
 	if err != nil {
-		panic("failed to start watching for learning tasks")
+		panic(fmt.Sprintf("failed to start watching for %s tasks", h.spec.Type()))
 	}
 
 	go func() {
 		log.Printf("watcher: start watching!")
-		for event := range learningTasksWatcher.ResultChan() {
+		for event := range tasksWatcher.ResultChan() {
 			switch event.Type {
 			case watch.Modified:
 				job := event.Object.DeepCopyObject().(*batchv1.Job)

@@ -41,11 +41,21 @@ func (ep *Endpoints) ExecuteTask(ctx *Context, rw web.ResponseWriter, req *web.R
 		http.Error(rw, "task_id is not specified", http.StatusBadRequest)
 	}
 
-	t := task.NewLearningTask(id)
+	var request ExecuteTaskRequest
+	decoder := json.NewDecoder(req.Body)
+	if err := decoder.Decode(&request); err != nil {
+		http.Error(rw, fmt.Sprintf("request is not a valid JSON: %v", err), http.StatusBadRequest)
+	}
+
+	t := task.NewTask(id, request.Type)
 
 	if err := ep.taskManager.Run(t); err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 	}
+}
+
+type ExecuteTaskRequest struct {
+	Type task.TaskType `json:"type"`
 }
 
 func (ep *Endpoints) GetTaskState(ctx *Context, rw web.ResponseWriter, req *web.Request) {

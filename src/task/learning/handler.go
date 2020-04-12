@@ -48,7 +48,7 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{
 							},
 						},
 					},
-					RestartPolicy: v1.RestartPolicyOnFailure,
+					RestartPolicy: v1.RestartPolicyNever,
 				},
 			},
 		},

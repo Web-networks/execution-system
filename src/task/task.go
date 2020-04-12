@@ -38,10 +38,10 @@ type Task struct {
 	state unsafe.Pointer
 }
 
-func NewLearningTask(id string) *Task {
+func NewTask(id string, typ TaskType) *Task {
 	t := &Task{
 		ID:   id,
-		Type: LearningType,
+		Type: typ,
 	}
 	t.SetState(Initializing)
 	return t

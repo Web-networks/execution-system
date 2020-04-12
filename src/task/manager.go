@@ -33,6 +33,10 @@ func (tm *TaskManager) Run(task *Task) error {
 		return errors.New(fmt.Sprintf("unsupported task type '%s'", task.Type))
 	}
 
+	if _, ok := tm.tasks[task.ID]; ok {
+		return errors.New(fmt.Sprintf("task with id %s already exists", task.ID))
+	}
+
 	err := handler.Run(task)
 	if err != nil {
 		return err
