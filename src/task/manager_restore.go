@@ -3,21 +3,19 @@ package task
 import (
 	"fmt"
 	"time"
-
-	"github.com/Web-networks/execution-system/kube"
 )
 
 const restoreRetries = 10
 const restoreTimeout = 1 * time.Second
 
-func CreateManagerFromKubernetesState(kubeClient kube.Client, handlers ...TaskTypeHandler) *TaskManager {
+func CreateManagerFromKubernetesState(handlers ...TaskTypeHandler) *TaskManager {
 	var restoredTasks []*Task
 
 	for _, handler := range handlers {
 		restoredTasks = append(restoredTasks, restoreTasks(handler)...)
 	}
 
-	return newTaskManager(kubeClient, restoredTasks, handlers...)
+	return newTaskManager(restoredTasks, handlers...)
 }
 
 func restoreTasks(handler TaskTypeHandler) []*Task {

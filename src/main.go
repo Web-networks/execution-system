@@ -16,7 +16,7 @@ func main() {
 	conf := NewConfig()
 
 	kubeClient := kube.NewClient(conf.KubeConfigPath)
-	taskManager := task.CreateManagerFromKubernetesState(kubeClient,
+	taskManager := task.CreateManagerFromKubernetesState(
 		learning.NewTaskTypeHandler(kubeClient),
 	)
 

@@ -3,19 +3,15 @@ package task
 import (
 	"errors"
 	"fmt"
-
-	"github.com/Web-networks/execution-system/kube"
 )
 
 type TaskManager struct {
-	kubeClient   kube.Client
 	typeHandlers map[TaskType]TaskTypeHandler
 	tasks        map[string]*Task // TaskID -> Task
 }
 
-func newTaskManager(client kube.Client, tasks []*Task, handlers ...TaskTypeHandler) *TaskManager {
+func newTaskManager(tasks []*Task, handlers ...TaskTypeHandler) *TaskManager {
 	m := &TaskManager{
-		kubeClient:   client,
 		typeHandlers: mapFromTaskTypeHandlers(handlers),
 		tasks:        mapFromTasks(tasks),
 	}
