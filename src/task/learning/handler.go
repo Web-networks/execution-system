@@ -1,86 +1,56 @@
 package learning
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/Web-networks/execution-system/kube"
 	"github.com/Web-networks/execution-system/task"
+	"github.com/Web-networks/execution-system/task/basehandlers"
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type handler struct {
-	kubeClient kube.Client
+func NewHandler(kubeClient kube.Client) task.TaskTypeHandler {
+	return basehandlers.NewBatchHandler(kubeClient, &LearningTaskSpecification{})
 }
 
-var _ task.TaskTypeHandler = (*handler)(nil)
+type LearningTaskSpecification struct{}
 
-func NewTaskTypeHandler(kubeClient kube.Client) *handler {
-	return &handler{
-		kubeClient: kubeClient,
-	}
-}
+var _ basehandlers.TaskSpecification = (*LearningTaskSpecification)(nil)
 
-func (h *handler) Type() task.TaskType {
+func (spec *LearningTaskSpecification) Type() task.TaskType {
 	return task.LearningType
 }
 
-func (h *handler) RestoreTasks() ([]*task.Task, error) {
-	jobs, err := h.restoreJobsFromKube()
-	if err != nil {
-		return nil, err
+func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{} {
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: t.KubeJobName(),
+			Labels: map[string]string{
+				task.ManagedByLabel: task.ManagedByValue,
+				task.TaskTypeLabel:  task.LearningType,
+				task.TaskIDLabel:    t.ID,
+			},
+		},
+		Spec: batchv1.JobSpec{
+			Template: v1.PodTemplateSpec{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Name:    "learning",
+							Image:   "busybox",
+							Command: []string{"sleep", "30"}, // sleep for 30 seconds
+							Ports: []v1.ContainerPort{
+								{
+									Name:          "http",
+									Protocol:      v1.ProtocolTCP,
+									ContainerPort: 80,
+								},
+							},
+						},
+					},
+					RestartPolicy: v1.RestartPolicyOnFailure,
+				},
+			},
+		},
 	}
-	return h.tasksFromJobs(jobs), nil
-}
-
-func (h *handler) tasksFromJobs(jobs *batchv1.JobList) []*task.Task {
-	var tasks []*task.Task
-	for _, job := range jobs.Items {
-		tasks = append(tasks, newTaskFromWorkload(&job))
-	}
-	return tasks
-}
-
-func (h *handler) restoreJobsFromKube() (*batchv1.JobList, error) {
-	return h.kubeClient.GetBatchJobs(v1.ListOptions{
-		// TODO: add managed-by
-		LabelSelector: fmt.Sprintf("%s=%s", task.TaskTypeLabel, task.LearningType),
-	})
-}
-
-func (h *handler) WatchTasks(cb task.OnTaskStateModifiedCallback) {
-	learningTasksWatcher, err := h.kubeClient.WatchBatchJobs(v1.ListOptions{
-		// TODO: add managed-by
-		LabelSelector: fmt.Sprintf("%s=%s", task.TaskTypeLabel, task.LearningType),
-	})
-	if err != nil {
-		panic("failed to start watching for learning tasks")
-	}
-
-	go func() {
-		log.Printf("watcher: start watching!")
-		for event := range learningTasksWatcher.ResultChan() {
-			switch event.Type {
-			case watch.Modified:
-				job := event.Object.DeepCopyObject().(*batchv1.Job)
-
-				taskID := idFromKubeJob(job)
-				newState := stateFromKubeJob(job)
-				cb(taskID, newState)
-			}
-			// TODO: delete this
-			log.Printf("watcher: event type = %v", event.Type)
-		}
-	}()
-}
-
-func (h *handler) Run(task *task.Task) error {
-	workload := generateWorkload(task)
-	err := h.kubeClient.RunBatchJob(workload)
-	if err != nil {
-		return err
-	}
-	return nil
 }

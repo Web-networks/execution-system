@@ -17,7 +17,7 @@ func main() {
 
 	kubeClient := kube.NewClient(conf.KubeConfigPath)
 	taskManager := task.CreateManagerFromKubernetesState(
-		learning.NewTaskTypeHandler(kubeClient),
+		learning.NewHandler(kubeClient),
 	)
 
 	router := web.New(Context{})
