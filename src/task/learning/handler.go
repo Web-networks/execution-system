@@ -34,16 +34,45 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{
 		Spec: batchv1.JobSpec{
 			Template: v1.PodTemplateSpec{
 				Spec: v1.PodSpec{
+					Volumes: []v1.Volume{
+						{
+							Name: "resources",
+							VolumeSource: v1.VolumeSource{
+								EmptyDir: &v1.EmptyDirVolumeSource{},
+							},
+						},
+					},
+					InitContainers: []v1.Container{
+						{
+							Name:    "resources",
+							Image:   "busybox",
+							Command: []string{"mkdir", "/neuroide/test"}, // create /neuroide dir
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "resources",
+									ReadOnly:  false,
+									MountPath: "/neuroide",
+								},
+							},
+						},
+					},
 					Containers: []v1.Container{
 						{
 							Name:    "learning",
 							Image:   "busybox",
-							Command: []string{"sleep", "30"}, // sleep for 30 seconds
+							Command: []string{"sleep", "100"}, // sleep for 30 seconds
 							Ports: []v1.ContainerPort{
 								{
 									Name:          "http",
 									Protocol:      v1.ProtocolTCP,
 									ContainerPort: 80,
+								},
+							},
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "resources",
+									ReadOnly:  false,
+									MountPath: "/neuroide",
 								},
 							},
 						},
