@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Web-networks/execution-system/config"
 	"github.com/Web-networks/execution-system/kube"
 	"github.com/Web-networks/execution-system/task"
 	"github.com/Web-networks/execution-system/task/applying"
@@ -14,11 +15,11 @@ import (
 )
 
 func main() {
-	conf := NewConfig()
+	conf := config.NewConfig()
 
 	kubeClient := kube.NewClient(conf.KubeConfigPath)
 	taskManager := task.CreateManagerFromKubernetesState(
-		learning.NewHandler(kubeClient),
+		learning.NewHandler(kubeClient, conf),
 		applying.NewHandler(kubeClient),
 	)
 

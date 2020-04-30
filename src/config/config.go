@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"errors"
@@ -8,17 +8,23 @@ import (
 )
 
 type Config struct {
-	ListenPort int
+	ListenPort    int
 	ListenAddress string
 
 	KubeConfigPath string
+
+	// for AWS S3 credentials in resource-downloader
+	AwsAccessKeyId string
+	AwsSecretKey   string
 }
 
 func NewConfig() *Config {
 	return &Config{
-		ListenPort:    getIntOrDefault("LISTEN_PORT", 8888),
-		ListenAddress: getStringOrDefault("LISTEN_ADDR", "0.0.0.0"),
+		ListenPort:     getIntOrDefault("LISTEN_PORT", 8888),
+		ListenAddress:  getStringOrDefault("LISTEN_ADDR", "0.0.0.0"),
 		KubeConfigPath: getStringOrDefault("KUBECONFIG", fmt.Sprintf("%s/.kube/config", os.Getenv("HOME"))),
+		AwsAccessKeyId: os.Getenv("AWS_ACCESS_KEY_ID"),
+		AwsSecretKey:   os.Getenv("AWS_SECRET_ACCESS_KEY"),
 	}
 }
 
@@ -45,4 +51,3 @@ func getIntOrDefault(key string, defaultValue int) int {
 	}
 	return value
 }
-

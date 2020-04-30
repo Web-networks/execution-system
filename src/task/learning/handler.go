@@ -1,6 +1,7 @@
 package learning
 
 import (
+	"github.com/Web-networks/execution-system/config"
 	"github.com/Web-networks/execution-system/kube"
 	"github.com/Web-networks/execution-system/task"
 	"github.com/Web-networks/execution-system/task/basehandlers"
@@ -9,11 +10,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewHandler(kubeClient kube.Client) task.TaskTypeHandler {
-	return basehandlers.NewBatchHandler(kubeClient, &LearningTaskSpecification{})
+const resourceDownloaderImageName = "asverdlov/resource-downloader"
+
+func NewHandler(kubeClient kube.Client, config *config.Config) task.TaskTypeHandler {
+	return basehandlers.NewBatchHandler(kubeClient, &LearningTaskSpecification{config: config})
 }
 
-type LearningTaskSpecification struct{}
+type LearningTaskSpecification struct {
+	config *config.Config
+}
 
 var _ basehandlers.TaskSpecification = (*LearningTaskSpecification)(nil)
 
@@ -44,15 +49,24 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{
 					},
 					InitContainers: []v1.Container{
 						{
-							Name:    "resources",
-							Image:   "busybox",
-							Command: []string{"mkdir", "/neuroide/test"}, // create /neuroide dir
+							Name:  "resource-downloader",
+							Image: resourceDownloaderImageName,
+							Command: []string{
+								"/resource-downloader",
+								"--output_dir", "/neuroide",
+								"--model_bucket", "neuroide",
+								"--model_path", "sample_model.py",
+							},
 							VolumeMounts: []v1.VolumeMount{
 								{
 									Name:      "resources",
 									ReadOnly:  false,
 									MountPath: "/neuroide",
 								},
+							},
+							Env: []v1.EnvVar{
+								{Name: "AWS_ACCESS_KEY_ID", Value: spec.config.AwsAccessKeyId},
+								{Name: "AWS_SECRET_ACCESS_KEY", Value: spec.config.AwsSecretKey},
 							},
 						},
 					},
