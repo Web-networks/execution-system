@@ -53,9 +53,11 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{
 							Image: resourceDownloaderImageName,
 							Command: []string{
 								"/resource-downloader",
+								"--s3_region", "ru-central1",
+								"--s3_endpoint", "storage.yandexcloud.net",
 								"--output_dir", "/neuroide",
-								"--model_bucket", "neuroide",
-								"--model_path", "sample_model.py",
+								"--model_bucket", "code-testing",
+								"--model_path", "model_a3ae012f-e1eb-4d0c-af36-b463e28cbaa1",
 							},
 							VolumeMounts: []v1.VolumeMount{
 								{
