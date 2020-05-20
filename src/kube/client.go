@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	apps "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -16,6 +17,9 @@ type Client interface {
 	RunBatchJob(job *batchv1.Job) error
 	WatchBatchJobs(options v1.ListOptions) (watch.Interface, error)
 	GetBatchJobs(options v1.ListOptions) (*batchv1.JobList, error)
+	RunDeployment(deployment *apps.Deployment) error
+	WatchDeployments(options v1.ListOptions) (watch.Interface, error)
+	GetDeployments(options v1.ListOptions) (*apps.DeploymentList, error)
 }
 
 type client struct {
@@ -52,4 +56,20 @@ func (c *client) WatchBatchJobs(options v1.ListOptions) (watch.Interface, error)
 func (c *client) GetBatchJobs(options v1.ListOptions) (*batchv1.JobList, error) {
 	jobClient := c.clientset.BatchV1().Jobs("default")
 	return jobClient.List(options)
+}
+
+func (c *client) RunDeployment(deployment *apps.Deployment) error {
+	deploymentClient := c.clientset.AppsV1().Deployments("default")
+	_, err := deploymentClient.Create(deployment)
+	return err
+}
+
+func (c *client) WatchDeployments(options v1.ListOptions) (watch.Interface, error) {
+	deploymentClient := c.clientset.AppsV1().Deployments("default")
+	return deploymentClient.Watch(options)
+}
+
+func (c *client) GetDeployments(options v1.ListOptions) (*apps.DeploymentList, error) {
+	deploymentClient := c.clientset.AppsV1().Deployments("default")
+	return deploymentClient.List(options)
 }
