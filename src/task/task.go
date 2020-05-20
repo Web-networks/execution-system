@@ -15,9 +15,9 @@ const TaskIDLabel = "bigone.demist.ru/task-id"
 type TaskType = string
 
 const (
-	LearningType      = "learning"
-	ApplyingType      = "applying"
-	RemoteJupyterType = "jupyter"
+	LearningType = "learning"
+	ApplyingType = "applying"
+	JupyterType  = "jupyter"
 )
 
 type TaskState = string

@@ -10,6 +10,7 @@ import (
 	"github.com/Web-networks/execution-system/kube"
 	"github.com/Web-networks/execution-system/task"
 	"github.com/Web-networks/execution-system/task/applying"
+	"github.com/Web-networks/execution-system/task/jupyter"
 	"github.com/Web-networks/execution-system/task/learning"
 	"github.com/gocraft/web"
 )
@@ -21,6 +22,7 @@ func main() {
 	taskManager := task.CreateManagerFromKubernetesState(
 		learning.NewHandler(kubeClient, conf),
 		applying.NewHandler(kubeClient),
+		jupyter.NewHandler(kubeClient),
 	)
 
 	router := web.New(Context{})
