@@ -29,7 +29,7 @@ func (spec *JupyterTaskSpecification) GenerateWorkload(t *task.Task) interface{}
 	}
 	return &apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   t.KubeDeploymentName(),
+			Name:   t.KubeWorkloadName(),
 			Labels: labels,
 		},
 		Spec: apps.DeploymentSpec{

@@ -29,7 +29,7 @@ func (spec *LearningTaskSpecification) Type() task.TaskType {
 func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{} {
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: t.KubeJobName(),
+			Name: t.KubeWorkloadName(),
 			Labels: map[string]string{
 				task.ManagedByLabel: task.ManagedByValue,
 				task.TaskTypeLabel:  task.LearningType,

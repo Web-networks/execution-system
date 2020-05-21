@@ -56,10 +56,6 @@ func (t *Task) SetState(state TaskState) {
 	atomic.StorePointer(&t.state, unsafe.Pointer(&state))
 }
 
-func (t *Task) KubeJobName() string {
-	return fmt.Sprintf("%s-%s", t.Type, t.ID)
-}
-
-func (t *Task) KubeDeploymentName() string {
+func (t *Task) KubeWorkloadName() string {
 	return fmt.Sprintf("%s-%s", t.Type, t.ID)
 }

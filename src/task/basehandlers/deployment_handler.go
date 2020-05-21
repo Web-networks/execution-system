@@ -45,7 +45,6 @@ func (h *DeploymentHandler) tasksFromDeployments(deployments *apps.DeploymentLis
 			Type: typeFromKubeDeployment(&deployment),
 		}
 		t.SetState(stateFromKubeDeployment(&deployment))
-		log.Printf("task restored = %v", t) // todo: clean logs
 		tasks = append(tasks, t)
 	}
 	return tasks
@@ -69,10 +68,6 @@ func typeFromKubeDeployment(deployment *apps.Deployment) task.TaskType {
 }
 
 func stateFromKubeDeployment(deployment *apps.Deployment) task.TaskState {
-	log.Printf("status: available=%v, replicas=%v, unavailable=%v",
-		deployment.Status.AvailableReplicas,
-		deployment.Status.Replicas,
-		deployment.Status.UnavailableReplicas) // todo: clean logs
 	if deployment.Status.AvailableReplicas == deployment.Status.Replicas {
 		return task.Running
 	} else {
