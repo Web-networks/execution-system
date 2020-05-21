@@ -5,8 +5,8 @@ import (
 	"github.com/Web-networks/execution-system/task"
 	"github.com/Web-networks/execution-system/task/basehandlers"
 	apps "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	core "k8s.io/api/core/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func NewHandler(kubeClient kube.Client) task.TaskTypeHandler {
@@ -15,7 +15,7 @@ func NewHandler(kubeClient kube.Client) task.TaskTypeHandler {
 
 type JupyterTaskSpecification struct{}
 
-var _ basehandlers.TaskSpecification = (*JupyterTaskSpecification)(nil)
+var _ basehandlers.TaskWithServiceSpecification = (*JupyterTaskSpecification)(nil)
 
 func (spec *JupyterTaskSpecification) Type() task.TaskType {
 	return task.JupyterType
@@ -28,34 +28,67 @@ func (spec *JupyterTaskSpecification) GenerateWorkload(t *task.Task) interface{}
 		task.TaskIDLabel:    t.ID,
 	}
 	return &apps.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: meta.ObjectMeta{
 			Name:   t.KubeWorkloadName(),
 			Labels: labels,
 		},
 		Spec: apps.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
+			Selector: &meta.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
+			Template: core.PodTemplateSpec{
+				ObjectMeta: meta.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+				Spec: core.PodSpec{
+					Containers: []core.Container{
 						{
-							Name:    t.Type,
-							Image:   "busybox",
-							Command: []string{"sleep", "30"}, // sleep for 30 seconds
-							Ports: []v1.ContainerPort{
+							Name:  t.Type,
+							Image: "networksidea/image_generation:jupyter-1.0.5",
+							Ports: []core.ContainerPort{
 								{
 									Name:          "http",
-									Protocol:      v1.ProtocolTCP,
-									ContainerPort: 80,
+									Protocol:      core.ProtocolTCP,
+									ContainerPort: 8888,
+								},
+							},
+							Env: []core.EnvVar{
+								{
+									Name:  "JUPYTER_TOKEN",
+									Value: "abcd",
 								},
 							},
 						},
 					},
-					RestartPolicy: v1.RestartPolicyAlways,
+					RestartPolicy: core.RestartPolicyAlways,
+					ImagePullSecrets: []core.LocalObjectReference{
+						{
+							Name: "dockerpullsecrets",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (spec *JupyterTaskSpecification) GenerateService(t *task.Task) interface{} {
+	labels := map[string]string{
+		task.ManagedByLabel: task.ManagedByValue,
+		task.TaskTypeLabel:  task.JupyterType,
+		task.TaskIDLabel:    t.ID,
+	}
+	return &core.Service{
+		ObjectMeta: meta.ObjectMeta{
+			Name:   t.KubeWorkloadName(),
+			Labels: labels,
+		},
+		Spec: core.ServiceSpec{
+			Selector: labels,
+			Type:     "NodePort",
+			Ports: []core.ServicePort{
+				{
+					Port: 8888,
 				},
 			},
 		},

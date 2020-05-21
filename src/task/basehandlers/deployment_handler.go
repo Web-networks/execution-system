@@ -7,18 +7,19 @@ import (
 	"github.com/Web-networks/execution-system/kube"
 	"github.com/Web-networks/execution-system/task"
 	apps "k8s.io/api/apps/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	core "k8s.io/api/core/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
 type DeploymentHandler struct {
 	kubeClient kube.Client
-	spec       TaskSpecification
+	spec       TaskWithServiceSpecification
 }
 
 var _ task.TaskTypeHandler = (*DeploymentHandler)(nil)
 
-func NewDeploymentHandler(kubeClient kube.Client, spec TaskSpecification) *DeploymentHandler {
+func NewDeploymentHandler(kubeClient kube.Client, spec TaskWithServiceSpecification) *DeploymentHandler {
 	return &DeploymentHandler{
 		kubeClient: kubeClient,
 		spec:       spec,
@@ -51,7 +52,7 @@ func (h *DeploymentHandler) tasksFromDeployments(deployments *apps.DeploymentLis
 }
 
 func (h *DeploymentHandler) restoreDeploymentsFromKube() (*apps.DeploymentList, error) {
-	return h.kubeClient.GetDeployments(v1.ListOptions{
+	return h.kubeClient.GetDeployments(meta.ListOptions{
 		// TODO: add managed-by
 		LabelSelector: fmt.Sprintf("%s=%s", task.TaskTypeLabel, h.spec.Type()),
 	})
@@ -76,7 +77,7 @@ func stateFromKubeDeployment(deployment *apps.Deployment) task.TaskState {
 }
 
 func (h *DeploymentHandler) WatchTasks(cb task.OnTaskStateModifiedCallback) {
-	tasksWatcher, err := h.kubeClient.WatchDeployments(v1.ListOptions{
+	tasksWatcher, err := h.kubeClient.WatchDeployments(meta.ListOptions{
 		// TODO: add managed-by
 		LabelSelector: fmt.Sprintf("%s=%s", task.TaskTypeLabel, h.spec.Type()),
 	})
@@ -101,9 +102,21 @@ func (h *DeploymentHandler) WatchTasks(cb task.OnTaskStateModifiedCallback) {
 
 func (h *DeploymentHandler) Run(task *task.Task) error {
 	workload := h.spec.GenerateWorkload(task).(*apps.Deployment)
-	err := h.kubeClient.RunDeployment(workload)
+	service := h.spec.GenerateService(task).(*core.Service)
+
+	createdService, err := h.kubeClient.CreateService(service)
 	if err != nil {
+		log.Print(err)
+		return err
+	} else {
+		log.Printf("created service with NodePort=%v", createdService.Spec.Ports[0].NodePort)
+	}
+
+	err = h.kubeClient.RunDeployment(workload)
+	if err != nil {
+		log.Print(err)
 		return err
 	}
+
 	return nil
 }
