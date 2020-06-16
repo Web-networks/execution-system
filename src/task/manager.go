@@ -27,23 +27,23 @@ func (tm *TaskManager) onTaskStateChanged(id string, state TaskState) {
 	tm.tasks[id].SetState(state)
 }
 
-func (tm *TaskManager) Run(task *Task) error {
+func (tm *TaskManager) Run(task *Task) (error, string) {
 	handler, ok := tm.typeHandlers[task.Type]
 	if !ok {
-		return errors.New(fmt.Sprintf("unsupported task type '%s'", task.Type))
+		return errors.New(fmt.Sprintf("unsupported task type '%s'", task.Type)), ""
 	}
 
 	if _, ok := tm.tasks[task.ID]; ok {
-		return errors.New(fmt.Sprintf("task with id %s already exists", task.ID))
+		return errors.New(fmt.Sprintf("task with id %s already exists", task.ID)), ""
 	}
 
-	err := handler.Run(task)
+	err, data := handler.Run(task)
 	if err != nil {
-		return err
+		return err, data
 	}
 
 	tm.tasks[task.ID] = task
-	return nil
+	return nil, data
 }
 
 func (tm *TaskManager) TaskStateByID(id string) TaskState {

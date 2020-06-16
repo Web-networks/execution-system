@@ -49,9 +49,17 @@ func (ep *Endpoints) ExecuteTask(ctx *Context, rw web.ResponseWriter, req *web.R
 
 	t := task.NewTask(id, request.Type)
 
-	if err := ep.taskManager.Run(t); err != nil {
+	err, data := ep.taskManager.Run(t)
+	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 	}
+
+	respBytes, err := json.Marshal(data)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	}
+
+	_, _ = rw.Write(respBytes)
 }
 
 type ExecuteTaskRequest struct {

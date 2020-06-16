@@ -100,14 +100,14 @@ func (h *DeploymentHandler) WatchTasks(cb task.OnTaskStateModifiedCallback) {
 	}()
 }
 
-func (h *DeploymentHandler) Run(task *task.Task) error {
+func (h *DeploymentHandler) Run(task *task.Task) (error, string) {
 	workload := h.spec.GenerateWorkload(task).(*apps.Deployment)
 	service := h.spec.GenerateService(task).(*core.Service)
 
 	createdService, err := h.kubeClient.CreateService(service)
 	if err != nil {
 		log.Print(err)
-		return err
+		return err, ""
 	} else {
 		log.Printf("created service with NodePort=%v", createdService.Spec.Ports[0].NodePort)
 	}
@@ -115,8 +115,8 @@ func (h *DeploymentHandler) Run(task *task.Task) error {
 	err = h.kubeClient.RunDeployment(workload)
 	if err != nil {
 		log.Print(err)
-		return err
+		return err, ""
 	}
 
-	return nil
+	return nil, fmt.Sprintf("\"NodePort\": %v", createdService.Spec.Ports[0].NodePort)
 }
