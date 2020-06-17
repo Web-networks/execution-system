@@ -15,9 +15,9 @@ const TaskIDLabel = "bigone.demist.ru/task-id"
 type TaskType = string
 
 const (
-	LearningType      = "learning"
-	ApplyingType      = "applying"
-	RemoteJupyterType = "jupyter"
+	LearningType = "learning"
+	ApplyingType = "applying"
+	JupyterType  = "jupyter"
 )
 
 type TaskState = string
@@ -56,6 +56,6 @@ func (t *Task) SetState(state TaskState) {
 	atomic.StorePointer(&t.state, unsafe.Pointer(&state))
 }
 
-func (t *Task) KubeJobName() string {
+func (t *Task) KubeWorkloadName() string {
 	return fmt.Sprintf("%s-%s", t.Type, t.ID)
 }

@@ -6,8 +6,8 @@ import (
 
 	"github.com/Web-networks/execution-system/kube"
 	"github.com/Web-networks/execution-system/task"
-	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	batch "k8s.io/api/batch/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
@@ -37,7 +37,7 @@ func (h *BatchWorkloadTaskTypeHandler) RestoreTasks() ([]*task.Task, error) {
 	return h.tasksFromJobs(jobs), nil
 }
 
-func (h *BatchWorkloadTaskTypeHandler) tasksFromJobs(jobs *batchv1.JobList) []*task.Task {
+func (h *BatchWorkloadTaskTypeHandler) tasksFromJobs(jobs *batch.JobList) []*task.Task {
 	var tasks []*task.Task
 	for _, job := range jobs.Items {
 		tasks = append(tasks, newTaskFromWorkload(&job))
@@ -45,14 +45,14 @@ func (h *BatchWorkloadTaskTypeHandler) tasksFromJobs(jobs *batchv1.JobList) []*t
 	return tasks
 }
 
-func (h *BatchWorkloadTaskTypeHandler) restoreJobsFromKube() (*batchv1.JobList, error) {
-	return h.kubeClient.GetBatchJobs(v1.ListOptions{
+func (h *BatchWorkloadTaskTypeHandler) restoreJobsFromKube() (*batch.JobList, error) {
+	return h.kubeClient.GetBatchJobs(meta.ListOptions{
 		// TODO: add managed-by
 		LabelSelector: fmt.Sprintf("%s=%s", task.TaskTypeLabel, h.spec.Type()),
 	})
 }
 
-func newTaskFromWorkload(job *batchv1.Job) *task.Task {
+func newTaskFromWorkload(job *batch.Job) *task.Task {
 	t := &task.Task{
 		ID:   idFromKubeJob(job),
 		Type: typeFromKubeJob(job),
@@ -61,17 +61,17 @@ func newTaskFromWorkload(job *batchv1.Job) *task.Task {
 	return t
 }
 
-func idFromKubeJob(job *batchv1.Job) string {
+func idFromKubeJob(job *batch.Job) string {
 	labels := job.ObjectMeta.GetObjectMeta().GetLabels()
 	return labels[task.TaskIDLabel]
 }
 
-func typeFromKubeJob(job *batchv1.Job) task.TaskType {
+func typeFromKubeJob(job *batch.Job) task.TaskType {
 	labels := job.ObjectMeta.GetObjectMeta().GetLabels()
 	return labels[task.TaskTypeLabel]
 }
 
-func stateFromKubeJob(job *batchv1.Job) task.TaskState {
+func stateFromKubeJob(job *batch.Job) task.TaskState {
 	if job.Status.Failed > 0 {
 		return task.Failed
 	} else if job.Status.Active > 0 {
@@ -84,7 +84,7 @@ func stateFromKubeJob(job *batchv1.Job) task.TaskState {
 }
 
 func (h *BatchWorkloadTaskTypeHandler) WatchTasks(cb task.OnTaskStateModifiedCallback) {
-	tasksWatcher, err := h.kubeClient.WatchBatchJobs(v1.ListOptions{
+	tasksWatcher, err := h.kubeClient.WatchBatchJobs(meta.ListOptions{
 		// TODO: add managed-by
 		LabelSelector: fmt.Sprintf("%s=%s", task.TaskTypeLabel, h.spec.Type()),
 	})
@@ -97,7 +97,7 @@ func (h *BatchWorkloadTaskTypeHandler) WatchTasks(cb task.OnTaskStateModifiedCal
 		for event := range tasksWatcher.ResultChan() {
 			switch event.Type {
 			case watch.Modified:
-				job := event.Object.DeepCopyObject().(*batchv1.Job)
+				job := event.Object.DeepCopyObject().(*batch.Job)
 
 				taskID := idFromKubeJob(job)
 				newState := stateFromKubeJob(job)
@@ -109,11 +109,11 @@ func (h *BatchWorkloadTaskTypeHandler) WatchTasks(cb task.OnTaskStateModifiedCal
 	}()
 }
 
-func (h *BatchWorkloadTaskTypeHandler) Run(task *task.Task) error {
-	workload := h.spec.GenerateWorkload(task).(*batchv1.Job)
+func (h *BatchWorkloadTaskTypeHandler) Run(task *task.Task) (error, string) {
+	workload := h.spec.GenerateWorkload(task).(*batch.Job)
 	err := h.kubeClient.RunBatchJob(workload)
 	if err != nil {
-		return err
+		return err, ""
 	}
-	return nil
+	return nil, ""
 }

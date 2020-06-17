@@ -24,7 +24,7 @@ func (spec *ApplyingTaskSpecification) Type() task.TaskType {
 func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task) interface{} {
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: t.KubeJobName(),
+			Name: t.KubeWorkloadName(),
 			Labels: map[string]string{
 				task.ManagedByLabel: task.ManagedByValue,
 				task.TaskTypeLabel:  task.ApplyingType,
