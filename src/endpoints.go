@@ -45,7 +45,8 @@ type ExecuteTaskRequest struct {
 		DataUrl string `json:"data_url"`
 	} `json:"user_input"`
 	Result struct {
-		S3Path string `json:"s3_path"`
+		S3Path        string `json:"s3_path"`
+		MetricsS3Path string `json:"metrics_s3_path"`
 	}
 }
 

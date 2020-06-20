@@ -63,8 +63,9 @@ func (t *Task) KubeJobName() string {
 }
 
 type LearningOrApplyingTaskParameters struct {
-	CodeUrl      string
-	WeightsUrl   string // absent in learning task
-	DataUrl      string
-	ResultS3Path string
+	CodeUrl             string
+	WeightsUrl          string // absent in learning task
+	DataUrl             string
+	ResultS3Path        string
+	ResultMetricsS3Path string // absent in applying task
 }

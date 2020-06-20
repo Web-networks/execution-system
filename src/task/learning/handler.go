@@ -88,8 +88,8 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 								"python3", "/neuroide/cli.py",
 								"--mode", "train",
 								"--epochs", "5",
-								"--sample-count", "100",
 								"--weights", "/neuroide/weights.h5",
+								"--metrics-output", "/neuroide/metrics.output",
 							},
 							VolumeMounts: []v1.VolumeMount{
 								{
@@ -99,8 +99,6 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 								},
 							},
 						},
-					},
-					Containers: []v1.Container{
 						{
 							Name:  "upload-weights",
 							Image: "amazon/aws-cli",
@@ -109,6 +107,29 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 								"--endpoint-url", "https://storage.yandexcloud.net",
 								"--region", "ru-central1",
 								"s3", "cp", "/neuroide/weights.h5", parameters.ResultS3Path,
+							},
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "resources",
+									ReadOnly:  false,
+									MountPath: "/neuroide",
+								},
+							},
+							Env: []v1.EnvVar{
+								{Name: "AWS_ACCESS_KEY_ID", Value: spec.config.AwsAccessKeyId},
+								{Name: "AWS_SECRET_ACCESS_KEY", Value: spec.config.AwsSecretKey},
+							},
+						},
+					},
+					Containers: []v1.Container{
+						{
+							Name:  "upload-metrics",
+							Image: "amazon/aws-cli",
+							Command: []string{
+								"aws",
+								"--endpoint-url", "https://storage.yandexcloud.net",
+								"--region", "ru-central1",
+								"s3", "cp", "/neuroide/metrics.output", parameters.ResultMetricsS3Path,
 							},
 							VolumeMounts: []v1.VolumeMount{
 								{
