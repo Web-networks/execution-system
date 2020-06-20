@@ -53,7 +53,9 @@ func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 							Name:  "download-code-and-weights",
 							Image: "busybox",
 							Command: []string{
-								"/bin/sh", fmt.Sprintf(
+								"/bin/sh",
+								"-c",
+								fmt.Sprintf(
 									"wget %s -O /neuroide/code.tar.gz && wget %s -O /neuroide/weights.h5",
 									parameters.CodeUrl,
 									parameters.WeightsUrl,
@@ -84,10 +86,11 @@ func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 							},
 						},
 						{
-							Name:  "learning",
+							Name:  "applying",
 							Image: "tensorflow/tensorflow",
 							Command: []string{ // TODO
 								"/bin/sh",
+								"-c",
 								"python3 /neuroide/cli.py --mode eval --weights /neuroide/weights.h5 > /neuroide/results",
 							},
 							VolumeMounts: []v1.VolumeMount{
