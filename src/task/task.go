@@ -62,8 +62,9 @@ func (t *Task) KubeJobName() string {
 	return fmt.Sprintf("%s-%s", t.Type, t.ID)
 }
 
-type LearningTaskParameters struct {
+type LearningOrApplyingTaskParameters struct {
 	CodeUrl      string
+	WeightsUrl   string // absent in learning task
 	DataUrl      string
 	ResultS3Path string
 }

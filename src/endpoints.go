@@ -35,37 +35,10 @@ func (ep *Endpoints) SetupRoutes(router *web.Router) {
 	router.Get("/api/task/:task_id/state", ep.GetTaskState)
 }
 
-func (ep *Endpoints) ExecuteTask(ctx *Context, rw web.ResponseWriter, req *web.Request) {
-	id, ok := req.PathParams["task_id"]
-	if !ok {
-		http.Error(rw, "task_id is not specified", http.StatusBadRequest)
-	}
-
-	var request ExecuteTaskRequest
-	decoder := json.NewDecoder(req.Body)
-	if err := decoder.Decode(&request); err != nil {
-		http.Error(rw, fmt.Sprintf("request is not a valid JSON: %v", err), http.StatusBadRequest)
-	}
-	var parameters task.Parameters
-	if request.Type == task.LearningType {
-		parameters = task.LearningTaskParameters{
-			CodeUrl:      request.Model.ExecutionCodeUrl,
-			DataUrl:      request.UserInput.DataUrl,
-			ResultS3Path: request.Result.S3Path,
-		}
-	}
-	t := task.NewTask(id, request.Type)
-
-	if err := ep.taskManager.Run(t, parameters); err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
-	}
-
-	rw.Write([]byte("{\"result\":\"SUCCESS\"}"))
-}
-
 type ExecuteTaskRequest struct {
 	Type  task.TaskType
 	Model struct {
+		WeightsUrl       string `json:"weights_url"`
 		ExecutionCodeUrl string `json:"execution_code_url"`
 	}
 	UserInput struct {
@@ -74,6 +47,41 @@ type ExecuteTaskRequest struct {
 	Result struct {
 		S3Path string `json:"s3_path"`
 	}
+}
+
+func (ep *Endpoints) ExecuteTask(ctx *Context, rw web.ResponseWriter, req *web.Request) {
+	id, ok := req.PathParams["task_id"]
+	if !ok {
+		http.Error(rw, "task_id is not specified", http.StatusBadRequest)
+		return
+	}
+
+	var request ExecuteTaskRequest
+	decoder := json.NewDecoder(req.Body)
+	if err := decoder.Decode(&request); err != nil {
+		http.Error(rw, fmt.Sprintf("request is not a valid JSON: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	var parameters task.Parameters
+
+	switch request.Type {
+	case task.LearningType, task.ApplyingType:
+		parameters = task.LearningOrApplyingTaskParameters{
+			CodeUrl:      request.Model.ExecutionCodeUrl,
+			DataUrl:      request.UserInput.DataUrl,
+			ResultS3Path: request.Result.S3Path,
+		}
+	default:
+		http.Error(rw, fmt.Sprintf("unsupported task type: %s", request.Type), http.StatusBadRequest)
+	}
+
+	t := task.NewTask(id, request.Type)
+	if err := ep.taskManager.Run(t, parameters); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+	}
+
+	rw.Write([]byte("{\"result\":\"SUCCESS\"}"))
 }
 
 func (ep *Endpoints) GetTaskState(ctx *Context, rw web.ResponseWriter, req *web.Request) {

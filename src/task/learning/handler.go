@@ -6,7 +6,7 @@ import (
 	"github.com/Web-networks/execution-system/task"
 	"github.com/Web-networks/execution-system/task/basehandlers"
 	batchv1 "k8s.io/api/batch/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,7 +27,7 @@ func (spec *LearningTaskSpecification) Type() task.TaskType {
 }
 
 func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task, _parameters task.Parameters) interface{} {
-	parameters := _parameters.(task.LearningTaskParameters)
+	parameters := _parameters.(task.LearningOrApplyingTaskParameters)
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: t.KubeJobName(),
