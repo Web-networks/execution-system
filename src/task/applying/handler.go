@@ -56,9 +56,10 @@ func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 								"/bin/sh",
 								"-c",
 								fmt.Sprintf(
-									"wget %s -O /neuroide/code.tar.gz && wget %s -O /neuroide/weights.h5",
+									"wget %s -O /neuroide/code.tar.gz && wget %s -O /neuroide/weights.h5 && mkdir -p /neuroide/data/ && wget %s -O /neuroide/data/userdata",
 									parameters.CodeUrl,
 									parameters.WeightsUrl,
+									parameters.DataUrl,
 								),
 							},
 							VolumeMounts: []v1.VolumeMount{
@@ -91,7 +92,7 @@ func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 							Command: []string{ // TODO
 								"/bin/sh",
 								"-c",
-								"python3 /neuroide/cli.py --mode eval --weights /neuroide/weights.h5 > /neuroide/results",
+								"python3 /neuroide/cli.py --mode eval --eval-data /neuroide/data --weights /neuroide/weights.h5 > /neuroide/results",
 							},
 							VolumeMounts: []v1.VolumeMount{
 								{
