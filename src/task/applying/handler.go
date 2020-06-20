@@ -92,7 +92,7 @@ func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 							Command: []string{ // TODO
 								"/bin/sh",
 								"-c",
-								"python3 /neuroide/cli.py --mode eval --eval-data /neuroide/data --weights /neuroide/weights.h5 > /neuroide/results",
+								"python3 /neuroide/cli.py --mode eval --eval-data /neuroide/data --weights /neuroide/weights.h5 --network-output /neuroide/results",
 							},
 							VolumeMounts: []v1.VolumeMount{
 								{
