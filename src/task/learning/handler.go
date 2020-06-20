@@ -6,7 +6,7 @@ import (
 	"github.com/Web-networks/execution-system/task"
 	"github.com/Web-networks/execution-system/task/basehandlers"
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,7 +26,8 @@ func (spec *LearningTaskSpecification) Type() task.TaskType {
 	return task.LearningType
 }
 
-func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{} {
+func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task, _parameters task.Parameters) interface{} {
+	parameters := _parameters.(task.LearningTaskParameters)
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: t.KubeJobName(),
@@ -49,15 +50,65 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{
 					},
 					InitContainers: []v1.Container{
 						{
-							Name:  "resource-downloader",
-							Image: resourceDownloaderImageName,
+							Name:  "download-code",
+							Image: "busybox",
 							Command: []string{
-								"/resource-downloader",
-								"--s3_region", "ru-central1",
-								"--s3_endpoint", "storage.yandexcloud.net",
-								"--output_dir", "/neuroide",
-								"--model_bucket", "code-testing",
-								"--model_path", "model_a3ae012f-e1eb-4d0c-af36-b463e28cbaa1",
+								"wget",
+								parameters.CodeUrl,
+								"-O", "/neuroide/" + "code.tar.gz",
+							},
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "resources",
+									ReadOnly:  false,
+									MountPath: "/neuroide",
+								},
+							},
+						},
+						{
+							Name:  "untar-code",
+							Image: "busybox",
+							Command: []string{
+								"tar",
+								"-xzf", "/neuroide/" + "code.tar.gz",
+								"-C", "/neuroide",
+							},
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "resources",
+									ReadOnly:  false,
+									MountPath: "/neuroide",
+								},
+							},
+						},
+						{
+							Name:  "learning",
+							Image: "tensorflow/tensorflow",
+							Command: []string{
+								"python3", "/neuroide/cli.py",
+								"--mode", "train",
+								"--epochs", "5",
+								"--sample-count", "100",
+								"--weights", "/neuroide/weights.h5",
+							},
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "resources",
+									ReadOnly:  false,
+									MountPath: "/neuroide",
+								},
+							},
+						},
+					},
+					Containers: []v1.Container{
+						{
+							Name:  "upload-weights",
+							Image: "amazon/aws-cli",
+							Command: []string{
+								"aws",
+								"--endpoint-url", "https://storage.yandexcloud.net",
+								"--region", "ru-central1",
+								"s3", "cp", "/neuroide/weights.h5", parameters.ResultS3Path,
 							},
 							VolumeMounts: []v1.VolumeMount{
 								{
@@ -69,27 +120,6 @@ func (spec *LearningTaskSpecification) GenerateWorkload(t *task.Task) interface{
 							Env: []v1.EnvVar{
 								{Name: "AWS_ACCESS_KEY_ID", Value: spec.config.AwsAccessKeyId},
 								{Name: "AWS_SECRET_ACCESS_KEY", Value: spec.config.AwsSecretKey},
-							},
-						},
-					},
-					Containers: []v1.Container{
-						{
-							Name:    "learning",
-							Image:   "busybox",
-							Command: []string{"sleep", "100"}, // sleep for 30 seconds
-							Ports: []v1.ContainerPort{
-								{
-									Name:          "http",
-									Protocol:      v1.ProtocolTCP,
-									ContainerPort: 80,
-								},
-							},
-							VolumeMounts: []v1.VolumeMount{
-								{
-									Name:      "resources",
-									ReadOnly:  false,
-									MountPath: "/neuroide",
-								},
 							},
 						},
 					},

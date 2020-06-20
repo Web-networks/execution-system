@@ -31,6 +31,8 @@ const (
 	UnknownTask = "UNKNOWN_TASK"
 )
 
+type Parameters interface{}
+
 type Task struct {
 	ID   string
 	Type TaskType
@@ -58,4 +60,10 @@ func (t *Task) SetState(state TaskState) {
 
 func (t *Task) KubeJobName() string {
 	return fmt.Sprintf("%s-%s", t.Type, t.ID)
+}
+
+type LearningTaskParameters struct {
+	CodeUrl      string
+	DataUrl      string
+	ResultS3Path string
 }

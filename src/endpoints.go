@@ -46,16 +46,34 @@ func (ep *Endpoints) ExecuteTask(ctx *Context, rw web.ResponseWriter, req *web.R
 	if err := decoder.Decode(&request); err != nil {
 		http.Error(rw, fmt.Sprintf("request is not a valid JSON: %v", err), http.StatusBadRequest)
 	}
-
+	var parameters task.Parameters
+	if request.Type == task.LearningType {
+		parameters = task.LearningTaskParameters{
+			CodeUrl:      request.Model.ExecutionCodeUrl,
+			DataUrl:      request.UserInput.DataUrl,
+			ResultS3Path: request.Result.S3Path,
+		}
+	}
 	t := task.NewTask(id, request.Type)
 
-	if err := ep.taskManager.Run(t); err != nil {
+	if err := ep.taskManager.Run(t, parameters); err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 	}
+
+	rw.Write([]byte("{\"result\":\"SUCCESS\"}"))
 }
 
 type ExecuteTaskRequest struct {
-	Type task.TaskType `json:"type"`
+	Type  task.TaskType
+	Model struct {
+		ExecutionCodeUrl string `json:"execution_code_url"`
+	}
+	UserInput struct {
+		DataUrl string `json:"data_url"`
+	} `json:"user_input"`
+	Result struct {
+		S3Path string `json:"s3_path"`
+	}
 }
 
 func (ep *Endpoints) GetTaskState(ctx *Context, rw web.ResponseWriter, req *web.Request) {

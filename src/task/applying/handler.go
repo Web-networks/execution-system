@@ -21,7 +21,7 @@ func (spec *ApplyingTaskSpecification) Type() task.TaskType {
 	return task.ApplyingType
 }
 
-func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task) interface{} {
+func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task, parameters task.Parameters) interface{} {
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: t.KubeJobName(),

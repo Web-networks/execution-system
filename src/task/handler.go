@@ -8,7 +8,7 @@ type TaskTypeHandler interface {
 
 	// runtime
 	WatchTasks(cb OnTaskStateModifiedCallback)
-	Run(task *Task) error
+	Run(task *Task, parameters Parameters) error
 }
 
 type OnTaskStateModifiedCallback = func(id string, newState TaskState)

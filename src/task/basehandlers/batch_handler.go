@@ -109,8 +109,8 @@ func (h *BatchWorkloadTaskTypeHandler) WatchTasks(cb task.OnTaskStateModifiedCal
 	}()
 }
 
-func (h *BatchWorkloadTaskTypeHandler) Run(task *task.Task) error {
-	workload := h.spec.GenerateWorkload(task).(*batchv1.Job)
+func (h *BatchWorkloadTaskTypeHandler) Run(task *task.Task, parameters task.Parameters) error {
+	workload := h.spec.GenerateWorkload(task, parameters).(*batchv1.Job)
 	err := h.kubeClient.RunBatchJob(workload)
 	if err != nil {
 		return err
