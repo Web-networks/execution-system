@@ -69,10 +69,11 @@ func (ep *Endpoints) ExecuteTask(ctx *Context, rw web.ResponseWriter, req *web.R
 	switch request.Type {
 	case task.LearningType, task.ApplyingType:
 		parameters = task.LearningOrApplyingTaskParameters{
-			CodeUrl:      request.Model.ExecutionCodeUrl,
-			WeightsUrl:   request.Model.WeightsUrl,
-			DataUrl:      request.UserInput.DataUrl,
-			ResultS3Path: request.Result.S3Path,
+			CodeUrl:             request.Model.ExecutionCodeUrl,
+			WeightsUrl:          request.Model.WeightsUrl,
+			DataUrl:             request.UserInput.DataUrl,
+			ResultS3Path:        request.Result.S3Path,
+			ResultMetricsS3Path: request.Result.MetricsS3Path,
 		}
 	default:
 		http.Error(rw, fmt.Sprintf("unsupported task type: %s", request.Type), http.StatusBadRequest)
