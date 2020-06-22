@@ -10,6 +10,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func NewHandler(kubeClient kube.Client, config *config.Config) task.TaskTypeHandler {
@@ -38,6 +39,7 @@ func (spec *ApplyingTaskSpecification) GenerateWorkload(t *task.Task, _parameter
 			},
 		},
 		Spec: batchv1.JobSpec{
+			BackoffLimit: pointer.Int32Ptr(1),
 			Template: v1.PodTemplateSpec{
 				Spec: v1.PodSpec{
 					Volumes: []v1.Volume{
