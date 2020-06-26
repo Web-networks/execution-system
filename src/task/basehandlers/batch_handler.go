@@ -1,6 +1,7 @@
 package basehandlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -98,6 +99,12 @@ func (h *BatchWorkloadTaskTypeHandler) WatchTasks(cb task.OnTaskStateModifiedCal
 			switch event.Type {
 			case watch.Modified:
 				job := event.Object.DeepCopyObject().(*batchv1.Job)
+
+				if jobStatusString, err := json.Marshal(job.Status); err == nil {
+					log.Printf("watcher: job.Status: %s", jobStatusString)
+				} else {
+					log.Printf("watcher: failed to marshal job.Status: %v", err)
+				}
 
 				taskID := idFromKubeJob(job)
 				newState := stateFromKubeJob(job)
