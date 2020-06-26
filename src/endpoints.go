@@ -33,6 +33,7 @@ func (ep *Endpoints) SetupRoutes(router *web.Router) {
 
 	router.Post("/api/task/:task_id/execute", ep.ExecuteTask)
 	router.Get("/api/task/:task_id/state", ep.GetTaskState)
+	router.Get("/api/tasks", ep.ListTasks)
 }
 
 type ExecuteTaskRequest struct {
@@ -106,6 +107,36 @@ func (ep *Endpoints) GetTaskState(ctx *Context, rw web.ResponseWriter, req *web.
 
 type GetTaskStatusResponse struct {
 	State task.TaskState `json:"state"`
+}
+
+func (ep *Endpoints) ListTasks(ctx *Context, rw web.ResponseWriter, req *web.Request) {
+	tasks := ep.taskManager.ListTasks()
+
+	var resp ListTasksResponse
+	for _, task := range tasks {
+		resp.Tasks = append(resp.Tasks, TaskPayload{
+			ID:    task.ID,
+			Type:  task.Type,
+			State: task.State(),
+		})
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	}
+
+	_, _ = rw.Write(respBytes)
+}
+
+type TaskPayload struct {
+	ID    string
+	Type  string
+	State task.TaskState
+}
+
+type ListTasksResponse struct {
+	Tasks []TaskPayload
 }
 
 func PanicRecoverMiddleware(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {

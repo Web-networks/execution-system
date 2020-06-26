@@ -54,6 +54,14 @@ func (tm *TaskManager) TaskStateByID(id string) TaskState {
 	return foundTask.State()
 }
 
+func (tm *TaskManager) ListTasks() []*Task {
+	var tasks []*Task
+	for _, task := range tm.tasks {
+		tasks = append(tasks, task)
+	}
+	return tasks
+}
+
 func mapFromTasks(tasks []*Task) map[string]*Task {
 	m := make(map[string]*Task)
 	for _, task := range tasks {
