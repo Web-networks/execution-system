@@ -3,11 +3,18 @@ package task
 import (
 	"errors"
 	"fmt"
+	"log"
+	"sync"
+	"time"
 )
+
+const tasksFullSyncInterval = 10 * time.Second
 
 type TaskManager struct {
 	typeHandlers map[TaskType]TaskTypeHandler
-	tasks        map[string]*Task // TaskID -> Task
+
+	mu    sync.Mutex
+	tasks map[string]*Task // TaskID -> Task
 }
 
 func newTaskManager(tasks []*Task, handlers ...TaskTypeHandler) *TaskManager {
@@ -19,11 +26,15 @@ func newTaskManager(tasks []*Task, handlers ...TaskTypeHandler) *TaskManager {
 	for _, handler := range handlers {
 		handler.WatchTasks(m.onTaskStateChanged)
 	}
+	go m.PeriodicallySyncTasks(time.NewTicker(tasksFullSyncInterval))
 
 	return m
 }
 
 func (tm *TaskManager) onTaskStateChanged(id string, state TaskState) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
 	tm.tasks[id].SetState(state)
 }
 
@@ -32,6 +43,9 @@ func (tm *TaskManager) Run(task *Task, parameters Parameters) error {
 	if !ok {
 		return errors.New(fmt.Sprintf("unsupported task type '%s'", task.Type))
 	}
+
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 
 	if _, ok := tm.tasks[task.ID]; ok {
 		return errors.New(fmt.Sprintf("task with id %s already exists", task.ID))
@@ -47,6 +61,9 @@ func (tm *TaskManager) Run(task *Task, parameters Parameters) error {
 }
 
 func (tm *TaskManager) TaskStateByID(id string) TaskState {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
 	foundTask, ok := tm.tasks[id]
 	if !ok {
 		return UnknownTask
@@ -55,11 +72,32 @@ func (tm *TaskManager) TaskStateByID(id string) TaskState {
 }
 
 func (tm *TaskManager) ListTasks() []*Task {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
 	var tasks []*Task
 	for _, task := range tm.tasks {
 		tasks = append(tasks, task)
 	}
 	return tasks
+}
+
+// sometimes change events are not passed into watchers
+func (tm *TaskManager) PeriodicallySyncTasks(ticker *time.Ticker) {
+	for {
+		select {
+		case <-ticker.C:
+			var restoredTasks []*Task
+			for _, handler := range tm.typeHandlers {
+				restoredTasks = append(restoredTasks, restoreTasks(handler)...)
+			}
+
+			tm.mu.Lock()
+			tm.tasks = mapFromTasks(restoredTasks)
+			tm.mu.Unlock()
+		}
+		log.Printf("Successfully synced tasks")
+	}
 }
 
 func mapFromTasks(tasks []*Task) map[string]*Task {
